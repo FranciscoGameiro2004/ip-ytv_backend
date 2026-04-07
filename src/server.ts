@@ -5,7 +5,7 @@ import { env } from "node:process"
 
 const app: Application = express()
 
-app.use(cors)
+app.use(cors())
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
