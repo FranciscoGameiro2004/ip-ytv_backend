@@ -1,8 +1,11 @@
 import express from "express"
 import type { Application } from "express"
+import cors from "cors"
 import { env } from "node:process"
 
 const app: Application = express()
+
+app.use(cors)
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
