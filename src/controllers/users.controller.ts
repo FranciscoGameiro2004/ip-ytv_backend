@@ -6,6 +6,7 @@ export const addUser = async (req: Request, res: Response, next: NextFunction) =
     const data = req.body
 
     if (
+        !data ||
         !data.username ||
         !data.email ||
         !data.password
