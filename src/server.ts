@@ -3,8 +3,11 @@ import type { Application } from "express"
 import cors from "cors"
 import { env } from "node:process"
 import { router } from "./routes/index.ts"
+import { connectDB } from "./models/index.ts"
 
 const app: Application = express()
+
+connectDB()
 
 app.use(cors())
 app.use('/', router)
