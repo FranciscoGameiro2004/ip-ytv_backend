@@ -3,4 +3,4 @@ import { addUser } from "../controllers/users.controller.ts"
 
 export const userRouter = express.Router()
 
-userRouter.post('/', (req, res, next) => addUser(req, res, next))
+userRouter.post('/', addUser)
