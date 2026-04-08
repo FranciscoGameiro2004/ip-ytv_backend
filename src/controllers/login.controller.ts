@@ -42,18 +42,14 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 }
 
 export const authCheck = async (req: Request, res: Response, next: NextFunction) => {
-    const data = req.body
+    const token = req.headers.authorization?.split(' ')[1]
 
-    if (
-        !data ||
-        !data.token
-    ) {
+    if (!token) {
         res.status(400).json({ message: 'A JWT token was not submited' })
         return
     }
 
-    //! Correct this  (error ts(7006))
-    jwt.verify(data.token, env.JWT_SECRET!, (err, decoded) => {
+    jwt.verify(token, env.JWT_SECRET!, (err, decoded) => {
         if (err) {
             res.status(401).json({ message: err.message })
             return
