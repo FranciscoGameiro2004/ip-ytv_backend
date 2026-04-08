@@ -15,7 +15,7 @@ export const addUser = async (req: Request, res: Response, next: NextFunction) =
         return
     }
 
-    const sameUsernameCount = await User.countDocuments({username: data.username});
+    const sameUsernameCount = await User.countDocuments({ username: data.username });
     if (sameUsernameCount >= 1) {
         res.status(409).json({ message: `There is already registered user ${data.username}` })
         return
@@ -45,4 +45,24 @@ export const addUser = async (req: Request, res: Response, next: NextFunction) =
             return
         }
     })
+}
+
+export const delUser = async (req: Request, res: Response, next: NextFunction) => {
+    const userToDelete = res.locals.userInfo
+    const adminCount = await User.countDocuments({ role: 'admin' });
+    if (adminCount < 2 && userToDelete.role === 'admin') {
+        res.status(401).json({ message: 'This service needs at least one adminstrator.' })
+        return
+    }
+
+    try {
+        const deleteUser = User.deleteOne({ username: userToDelete.username })
+        deleteUser.exec()
+        res.status(204).json(null)
+        return
+    } catch (err) {
+        res.status(500).json({ message: 'Internal server error. Try again later.' })
+        return
+    }
+
 }
