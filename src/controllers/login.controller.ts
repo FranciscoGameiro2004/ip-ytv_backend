@@ -40,3 +40,26 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         }
     })
 }
+
+export const authCheck = async (req: Request, res: Response, next: NextFunction) => {
+    const data = req.body
+
+    if (
+        !data ||
+        !data.token
+    ) {
+        res.status(400).json({ message: 'A JWT token was not submited' })
+        return
+    }
+
+    //! Correct this  (error ts(7006))
+    jwt.verify(data.token, env.JWT_SECRET!, (err, decoded) => {
+        if (err) {
+            res.status(401).json({ message: err.message })
+            return
+        } else {
+            res.locals.userInfo = decoded
+            next()
+        }
+    })
+}
