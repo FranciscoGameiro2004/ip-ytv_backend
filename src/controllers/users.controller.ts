@@ -4,7 +4,6 @@ import { User } from "../models/users.models.ts"
 
 export const addUser = async (req: Request, res: Response, next: NextFunction) => {
     const data = req.body
-    console.log(data)
 
     if (
         !data.username ||
@@ -24,7 +23,6 @@ export const addUser = async (req: Request, res: Response, next: NextFunction) =
     let newUserRole: 'admin' | 'user' = 'user'
 
     const count = await User.countDocuments({});
-    console.log(count);
     if (count < 1) {
         newUserRole = 'admin'
     }
