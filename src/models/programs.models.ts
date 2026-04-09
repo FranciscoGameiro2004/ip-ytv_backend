@@ -29,6 +29,11 @@ const programSchema = new Schema({
             return this.flexibleTime
         },
     },
+    weekdays: {
+        type: [String],
+        enum: ['Mon', 'Tue', 'Wen', 'Thu', 'Fri', 'Sat', 'Sun'],
+        required: true,
+    },
     maxVideos: {
         type: Schema.Types.Int32,
         min: 1,
