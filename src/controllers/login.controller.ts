@@ -26,7 +26,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     bcrypt.compare(data.password, user.hash, (err, result) => {
         if (result) {
             jwt.sign({ username: user.username, role: user.role }, env.JWT_SECRET!, {}, (error: Error | null, token) => {
-                if (error !== null) {
+                if (error === null) {
                     res.status(200).json({ token: token })
                     return
                 } else {
