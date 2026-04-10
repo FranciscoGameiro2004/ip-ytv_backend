@@ -1,6 +1,23 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 
-const programSchema = new Schema({
+interface ProgramInterface extends Document {
+    channelId: Types.ObjectId;
+    name: string;
+    description?: string;
+    flexibleTime: boolean;
+    startTime: string;
+    endTime?: string;
+    weekdays: ('Mon' | 'Tue' | 'Wen' | 'Thu' | 'Fri' | 'Sat' | 'Sun')[];
+    maxVideos: number;
+    type: 'byYTChannel' | 'byYTPlaylist';
+    ytChannelId?: string;
+    ytPlaylistId?: string;
+    ytVideoSearchMode: 'alwaysNewer' | 'episode';
+    ytVideoInvertedOrder: boolean;
+    ytLastVideoId?: string;
+}
+
+const programSchema = new Schema<ProgramInterface>({
     channelId: {
         type: Schema.Types.ObjectId,
         ref: 'Channel',
@@ -25,9 +42,7 @@ const programSchema = new Schema({
     },
     endTime: {
         type: String,
-        required: function () {
-            return this.flexibleTime
-        },
+        required: false,
     },
     weekdays: {
         type: [String],
@@ -35,7 +50,7 @@ const programSchema = new Schema({
         required: true,
     },
     maxVideos: {
-        type: Schema.Types.Int32,
+        type: Number,
         min: 1,
         required: true,
     },
@@ -46,21 +61,11 @@ const programSchema = new Schema({
     },
     ytChannelId: {
         type: String,
-        required: function () {
-            return this.type === 'byYTChannel'
-        },
-        enable: function () {
-            return this.type === 'byYTChannel'
-        },
+        required: false,
     },
     ytPlaylistId: {
         type: String,
-        required: function () {
-            return this.type === 'byYTPlaylist'
-        },
-        enable: function () {
-            return this.type === 'byYTPlaylist'
-        },
+        required: false,
     },
     ytVideoSearchMode: {
         type: String,
@@ -78,4 +83,4 @@ const programSchema = new Schema({
     }
 })
 
-export const Program = mongoose.model('Program', programSchema)
+export const Program = mongoose.model<ProgramInterface>('Program', programSchema)

@@ -175,7 +175,7 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
     if (
         !data ||
         !data.name ||
-        !data.flexibleTime ||
+        data.flexibleTime === undefined ||
         !data.startTime ||
         (!data.endTime && data.flexibleTime) ||
         !data.weekdays ||
@@ -184,7 +184,7 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
         (!data.ytChannelId && data.type === 'byYTChannel') ||
         (!data.ytPlaylistId && data.type === 'byYTPlaylist') ||
         !data.ytVideoSearchMode ||
-        !data.ytVideoInvertedOrder
+        data.ytVideoInvertedOrder === undefined
     ) {
         res.status(400).json({ message: 'The required parameters were not submited' })
         return
@@ -201,6 +201,33 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
         return
     }
 
+    const weekdays = ['Mon', 'Tue', 'Wen', 'Thu', 'Fri', 'Sat', 'Sun']
+    let timelineConflicts = false
+    weekdays.forEach(async (weekday) => {
+        const newProgramTimes = {
+            startTime: new Date(data.startTime),
+            endTime: !data.flexibleTime ? new Date(data.endTime) : undefined
+        }
+        const programs = await Program.find({ channelId: channelInfo._id, weekdays: weekday })
+        programs.forEach(program => {
+            const programTimes = {
+                startTime: new Date(program.startTime),
+                endTime: !data.flexibleTime && program.endTime ? new Date(program.endTime) : undefined
+            }
+
+            if (programTimes.endTime && newProgramTimes.endTime) {
+                if ((newProgramTimes.startTime < programTimes.endTime && programTimes.startTime < newProgramTimes.endTime)) {
+                    timelineConflicts = true
+                }
+            }
+        });
+    });
+
+    if (timelineConflicts) {
+        res.status(409).json({ message: `There are conflicts in the timetable.` })
+        return
+    }
+
     try {
         const newProgram = new Program({
             channelId: channelInfo._id,
@@ -212,8 +239,8 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
             weekdays: data.weekdays,
             maxVideos: data.maxVideos,
             type: data.type,
-            ytChannelId: data.ytChannelId,
-            ytPlaylistId: data.ytPlaylistId,
+            ytChannelId: data.type == 'byYTChannel' ? data.ytChannelId : undefined,
+            ytPlaylistId: data.type == 'byYTPlaylist' ? data.ytPlaylistId : undefined,
             ytVideoSearchMode: data.ytVideoSearchMode,
             ytVideoInvertedOrder: data.ytVideoInvertedOrder
         })
