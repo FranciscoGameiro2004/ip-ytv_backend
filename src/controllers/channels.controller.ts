@@ -175,16 +175,15 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
     if (
         !data ||
         !data.name ||
-        !data.flexibleTime ||
         !data.startTime ||
-        (!data.endTime && data.flexibleTime) ||
+        !data.endTime ||
         !data.weekdays ||
         !data.maxVideos ||
         !data.type ||
         (!data.ytChannelId && data.type === 'byYTChannel') ||
         (!data.ytPlaylistId && data.type === 'byYTPlaylist') ||
         !data.ytVideoSearchMode ||
-        !data.ytVideoInvertedOrder
+        data.ytVideoInvertedOrder === undefined
     ) {
         res.status(400).json({ message: 'The required parameters were not submited' })
         return
@@ -201,28 +200,54 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
         return
     }
 
-    try {
-        const newProgram = new Program({
-            channelId: channelInfo._id,
-            name: data.name,
-            description: data.description,
-            flexibleTime: data.flexibleTime,
-            startTime: data.startTime,
-            endTime: data.endTime,
-            weekdays: data.weekdays,
-            maxVideos: data.maxVideos,
-            type: data.type,
-            ytChannelId: data.ytChannelId,
-            ytPlaylistId: data.ytPlaylistId,
-            ytVideoSearchMode: data.ytVideoSearchMode,
-            ytVideoInvertedOrder: data.ytVideoInvertedOrder
-        })
-        newProgram.save()
+    let timelineConflicts = false
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const newProgramTimes = {
+        startTime: data.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return +prev + +val * (60 ^ idx) }, 0),
+        endTime: data.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return +prev + +val * (60 ^ idx) }, 0)
+    }
 
-        res.status(200).json({ message: `New program created for '${channelInfo.name}'.` })
+    for (const weekday of weekdays){
+        const programs = await Program.find({ channelId: channelInfo._id, weekdays: weekday })
+        for (const program of programs) {
+            const programTimes = {
+                startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return +prev + +val * (60 ^ idx) }, 0),
+                endTime: program.endTime!.split(':').reduce((prev: number, val: string, idx: number) => { return +prev + +val * (60 ^ idx) }, 0)
+            }
+            if ((newProgramTimes.startTime <= programTimes.endTime && programTimes.startTime <= newProgramTimes.endTime)) {
+                timelineConflicts = true
+                break
+            }
+        };
+        if (timelineConflicts) break
+    }
+
+    if (timelineConflicts) {
+        res.status(409).json({ message: `There are conflicts in the timetable.` })
         return
-    } catch (err) {
-        res.status(500).json({ message: 'Internal server error. Try again later.' })
-        return
+    } else {
+        try {
+            const newProgram = new Program({
+                channelId: channelInfo._id,
+                name: data.name,
+                description: data.description,
+                startTime: data.startTime,
+                endTime: data.endTime,
+                weekdays: data.weekdays,
+                maxVideos: data.maxVideos,
+                type: data.type,
+                ytChannelId: data.type == 'byYTChannel' ? data.ytChannelId : undefined,
+                ytPlaylistId: data.type == 'byYTPlaylist' ? data.ytPlaylistId : undefined,
+                ytVideoSearchMode: data.ytVideoSearchMode,
+                ytVideoInvertedOrder: data.ytVideoInvertedOrder
+            })
+            await newProgram.save()
+
+            res.status(200).json({ message: `New program created for '${channelInfo.name}'.` })
+            return
+        } catch (err) {
+            res.status(500).json({ message: 'Internal server error. Try again later.' })
+            return
+        }
     }
 }
