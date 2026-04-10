@@ -108,3 +108,57 @@ export const getChannels = async (req: Request, res: Response, next: NextFunctio
         return
     }
 }
+
+export const editChannel = async (req: Request, res: Response, next: NextFunction) => {
+    if (res.locals.userInfo.role !== 'admin') {
+        res.status(401).json({ message: 'Only users with admin role can edit a channel.' })
+        return
+    }
+
+    const data = req.body
+
+    if (
+        !data ||
+        (!data.name && !data.rtmpPathName && !data.iconURI)
+    ) {
+        res.status(400).json({ message: 'The required parameters were not submited' })
+        return
+    }
+
+    const currChannelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+        .catch((err) => {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        })
+
+    if (currChannelInfo === null || currChannelInfo === undefined) {
+        res.status(404).json({ message: 'Channel not found' })
+        return
+    }
+
+    const updatedChannelInfo: { name?: string, rtmpPathName?: string, iconURI?: string } = {}
+    if (data.name && data.name !== currChannelInfo.name) {
+        updatedChannelInfo.name = data.name
+    }
+    if (data.rtmpPathName && data.rtmpPathName !== currChannelInfo.rtmpPathName) {
+        updatedChannelInfo.rtmpPathName = data.rtmpPathName
+    }
+    if (data.iconURI && data.iconURI !== currChannelInfo.iconURI) {
+        updatedChannelInfo.iconURI = data.iconURI
+    }
+
+    if (updatedChannelInfo.name === undefined && updatedChannelInfo.rtmpPathName === undefined && updatedChannelInfo.iconURI === undefined) {
+        res.status(400).json({ message: 'Requested values already associated to the channel' })
+        return
+    } else {
+        try {
+            const updatedChannel = await Channel.findByIdAndUpdate(currChannelInfo._id, updatedChannelInfo)
+            res.status(200).json({ message: 'Channel updated!' })
+            return
+            
+        } catch (err) {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        }
+    }
+}
