@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express"
 import { env } from "node:process"
 import { Channel } from "../models/channels.models.ts"
+import { Program } from "../models/programs.models.ts"
 
 export const addChannel = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
@@ -155,10 +156,73 @@ export const editChannel = async (req: Request, res: Response, next: NextFunctio
             const updatedChannel = await Channel.findByIdAndUpdate(currChannelInfo._id, updatedChannelInfo)
             res.status(200).json({ message: 'Channel updated!' })
             return
-            
+
         } catch (err) {
             res.status(500).json({ message: 'Internal Server Error' })
             return
         }
+    }
+}
+
+export const addProgram = async (req: Request, res: Response, next: NextFunction) => {
+    if (res.locals.userInfo.role !== 'admin') {
+        res.status(401).json({ message: 'Only users with admin role can edit a channel.' })
+        return
+    }
+
+    const data = req.body
+
+    if (
+        !data ||
+        !data.name ||
+        !data.flexibleTime ||
+        !data.startTime ||
+        (!data.endTime && data.flexibleTime) ||
+        !data.weekdays ||
+        !data.maxVideos ||
+        !data.type ||
+        (!data.ytChannelId && data.type === 'byYTChannel') ||
+        (!data.ytPlaylistId && data.type === 'byYTPlaylist') ||
+        !data.ytVideoSearchMode ||
+        !data.ytVideoInvertedOrder
+    ) {
+        res.status(400).json({ message: 'The required parameters were not submited' })
+        return
+    }
+
+    const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+        .catch((err) => {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        })
+
+    if (channelInfo === null || channelInfo === undefined) {
+        res.status(404).json({ message: 'Channel not found' })
+        return
+    }
+
+    try {
+        const newProgram = new Program({
+            channelId: channelInfo._id,
+            name: data.name,
+            description: data.description,
+            flexibleTime: data.flexibleTime,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            weekdays: data.weekdays,
+            maxVideos: data.maxVideos,
+            type: data.type,
+            ytChannelId: data.ytChannelId,
+            ytPlaylistId: data.ytPlaylistId,
+            ytVideoSearchMode: data.ytVideoSearchMode,
+            ytVideoInvertedOrder: data.ytVideoInvertedOrder
+        })
+        newProgram.save()
+
+        res.status(200).json({ message: `New program created for '${channelInfo.name}'.` })
+        return
+    } catch (err) {
+        res.status(500).json({ message: 'Internal server error. Try again later.' })
+        return
     }
 }

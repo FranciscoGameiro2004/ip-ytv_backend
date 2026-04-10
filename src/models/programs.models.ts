@@ -12,7 +12,7 @@ const programSchema = new Schema({
     },
     description: {
         type: String,
-        required: true,
+        required: false,
     },
     flexibleTime: {
         type: Boolean,
@@ -20,11 +20,11 @@ const programSchema = new Schema({
         default: false,
     },
     startTime: {
-        type: Schema.Types.Date,
+        type: String,
         required: true,
     },
     endTime: {
-        type: Schema.Types.Date,
+        type: String,
         required: function () {
             return this.flexibleTime
         },
