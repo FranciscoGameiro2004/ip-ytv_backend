@@ -68,7 +68,7 @@ export const getChannels = async (req: Request, res: Response, next: NextFunctio
     const totalItems = await Channel.countDocuments({});
     const totalPages = Math.ceil(totalItems / +data.pageSize)
 
-    if (+data.page < totalPages) {
+    if (+data.page > totalPages) {
         res.status(404).json({ message: "Page requested not found" })
         return
     }
@@ -80,9 +80,15 @@ export const getChannels = async (req: Request, res: Response, next: NextFunctio
     }
 
     try {
-        const channels = await Channel.find({ $text: { $search: data.search } })
+        let channels
+        channels = await Channel.aggregate([{
+            "$match": {
+                "name": { "$regex": data.search, "$options": "i" }
+            }
+        }])
             .skip(offset)
             .limit(+data.pageSize)
+
 
         res.status(200).json({
             items: channels,
@@ -90,12 +96,13 @@ export const getChannels = async (req: Request, res: Response, next: NextFunctio
             totalItems,
             totalPages,
             _links: {
-                self: `/channels?page=${+data.page}${data.search !== '' && `&search=${data.search}`}`,
-                next: +data.page + 1 <= totalPages && `/channels?page=${+data.page + 1}${data.search !== '' && `&search=${data.search}`}`,
-                prev: +data.page - 1 > 0 && `/channels?page=${+data.page - 1}${data.search !== '' && `&search=${data.search}`}`,
+                self: `/channels?page=${+data.page}${data.search !== '' ? `&search=${data.search}` : ''}`,
+                next: +data.page + 1 <= totalPages ? `/channels?page=${+data.page + 1}${data.search !== '' ? `&search=${data.search}` : ''}` : undefined,
+                prev: +data.page - 1 > 0 ? `/channels?page=${+data.page - 1}${data.search !== '' ? `&search=${data.search}` : ''}` : undefined,
             }
 
         })
+        return
     } catch (err) {
         res.status(500).json({ message: "Internal server error. Try again later." })
         return
