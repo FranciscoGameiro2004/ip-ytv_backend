@@ -6,7 +6,7 @@ interface ProgramInterface extends Document {
     description?: string;
     flexibleTime: boolean;
     startTime: string;
-    endTime?: string;
+    endTime: string;
     weekdays: ('Mon' | 'Tue' | 'Wen' | 'Thu' | 'Fri' | 'Sat' | 'Sun')[];
     maxVideos: number;
     type: 'byYTChannel' | 'byYTPlaylist';
@@ -37,7 +37,7 @@ const programSchema = new Schema<ProgramInterface>({
     },
     endTime: {
         type: String,
-        required: false,
+        required: true,
     },
     weekdays: {
         type: [String],
