@@ -203,16 +203,16 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
     let timelineConflicts = false
     const weekdays = data.weekdays
     const newProgramTimes = {
-        startTime: data.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0),
-        endTime: data.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0)
+        startTime: data.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
+        endTime: data.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
     }
 
     for (const weekday of weekdays) {
         const programs = await Program.find({ channelId: channelInfo._id, weekdays: weekday })
         for (const program of programs) {
             const programTimes = {
-                startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0),
-                endTime: program.endTime!.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0)
+                startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
+                endTime: program.endTime!.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
             }
             if ((newProgramTimes.endTime > programTimes.startTime && programTimes.endTime > newProgramTimes.startTime)) {
                 timelineConflicts = true
@@ -355,16 +355,16 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
         let timelineConflicts = false
         const weekdays = data.weekdays ? data.weekdays : currProgramInfo.weekdays
         const updatedProgramTimes = {
-            startTime: data.startTime ? data.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0) : currProgramInfo.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0),
-            endTime: data.endTime ? data.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0) : currProgramInfo.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0)
+            startTime: data.startTime ? data.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0) : currProgramInfo.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
+            endTime: data.endTime ? data.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0) : currProgramInfo.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
         }
 
         for (const weekday of weekdays) {
             const programs = await Program.find({ channelId: channelInfo._id, weekdays: weekday })
             for (const program of programs) {
                 const programTimes = {
-                    startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0),
-                    endTime: program.endTime!.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2-idx)) }, 0)
+                    startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
+                    endTime: program.endTime!.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
                 }
                 if ((updatedProgramTimes.endTime > programTimes.startTime && programTimes.endTime > updatedProgramTimes.endTime)) {
                     timelineConflicts = true
@@ -445,5 +445,38 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
             res.status(500).json({ message: 'Internal Server Error' })
             return
         }
+    }
+}
+
+export const deleteProgram = async (req: Request, res: Response, next: NextFunction) => {
+    if (res.locals.userInfo.role !== 'admin') {
+        res.status(401).json({ message: 'Only users with admin role can edit a program.' })
+        return
+    }
+
+    const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+        .catch((err) => {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        })
+
+    const programToDelete = await Program.findById(req.params.programId)
+        .catch((err) => {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        })
+
+    if (programToDelete === null || programToDelete === undefined || channelInfo === null || channelInfo === undefined || !channelInfo._id.equals(programToDelete.channelId)) {
+        res.status(404).json({ message: 'Program not found' })
+        return
+    }
+
+    try {
+        const deleteProgram = await Program.findByIdAndDelete(programToDelete._id)
+        res.status(204).json(null)
+        return
+    } catch (err) {
+        res.status(500).json({ message: 'Internal server error. Try again later.' })
+        return
     }
 }
