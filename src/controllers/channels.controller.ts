@@ -110,6 +110,59 @@ export const getChannels = async (req: Request, res: Response, next: NextFunctio
     }
 }
 
+export const getChannel = async (req: Request, res: Response, next: NextFunction) => {
+    let data = req.query
+
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const weekday = data.weekday ? data.weekday : ''
+    if (weekday !== '' && !weekdays.includes(weekday as string)) {
+        res.status(400).json({ message: 'The requested weekday is not valid.' })
+        return
+    }
+
+    try {
+        const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+        if (channelInfo === null) {
+            res.status(404).json({ message: 'Channel not found' })
+            return
+        }
+
+        const channelProgramsInfo = weekday !== '' ? await Program.find({ channelId: channelInfo._id, weekdays: (weekday as string) }) : await Program.find({ channelId: channelInfo._id })
+        const programs: any[] = []
+        //! Correct this! ^
+        channelProgramsInfo.forEach(programInfo => {
+            programs.push(
+                {
+                    _id: programInfo._id,
+                    name: programInfo.name,
+                    startTime: programInfo.startTime,
+                    endTime: programInfo.endTime,
+                    weekdays: programInfo.weekdays,
+                    type: programInfo.type,
+                    ytChannelId: programInfo.type === 'byYTChannel' ? programInfo.ytChannelId : undefined,
+                    ytPlaylistId: programInfo.type === 'byYTPlaylist' ? programInfo.ytPlaylistId : undefined,
+                }
+            )
+        });
+
+        res.status(200).json(
+            {
+                _id: channelInfo._id,
+                name: channelInfo.name,
+                rtmpPathName: channelInfo.rtmpPathName,
+                iconURI: channelInfo.iconURI,
+                programsFiltersUsed: weekday !== '' ? {
+                    weekday: weekday
+                } : undefined,
+                programs: programs
+            }
+        )
+    } catch (err) {
+        res.status(500).json({ message: 'Internal server error. Try again later.' })
+        return
+    }
+}
+
 export const editChannel = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
         res.status(401).json({ message: 'Only users with admin role can edit a channel.' })
@@ -161,6 +214,40 @@ export const editChannel = async (req: Request, res: Response, next: NextFunctio
             res.status(500).json({ message: 'Internal Server Error' })
             return
         }
+    }
+}
+
+export const deleteChannel = async (req: Request, res: Response, next: NextFunction) => {
+    if (res.locals.userInfo.role !== 'admin') {
+        res.status(401).json({ message: 'Only users with admin role can edit a program.' })
+        return
+    }
+
+    const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+        .catch((err) => {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        })
+
+    if (channelInfo === null || channelInfo === undefined) {
+        res.status(404).json({ message: 'Program not found' })
+        return
+    }
+
+    try {
+        const programsToDelete = await Program.find({ channelId: channelInfo._id })
+        if (programsToDelete !== null) {
+            programsToDelete.forEach(async (program) => {
+                const deleteProgram = await Program.findByIdAndDelete(program._id)
+                res.status(204).json(null)
+                return
+            });
+        }
+
+        const deleteChannel = await Channel.findByIdAndDelete(channelInfo._id)
+    } catch (err) {
+        res.status(500).json({ message: 'Internal server error. Try again later.' })
+        return
     }
 }
 
