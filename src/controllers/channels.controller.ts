@@ -121,13 +121,13 @@ export const getChannel = async (req: Request, res: Response, next: NextFunction
     }
 
     try {
-        const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
-        if (channelInfo === null) {
+        const programInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+        if (programInfo === null) {
             res.status(404).json({ message: 'Channel not found' })
             return
         }
 
-        const channelProgramsInfo = weekday !== '' ? await Program.find({ channelId: channelInfo._id, weekdays: (weekday as string) }) : await Program.find({ channelId: channelInfo._id })
+        const channelProgramsInfo = weekday !== '' ? await Program.find({ channelId: programInfo._id, weekdays: (weekday as string) }) : await Program.find({ channelId: programInfo._id })
         const programs: any[] = []
         //! Correct this! ^
         channelProgramsInfo.forEach(programInfo => {
@@ -147,10 +147,10 @@ export const getChannel = async (req: Request, res: Response, next: NextFunction
 
         res.status(200).json(
             {
-                _id: channelInfo._id,
-                name: channelInfo.name,
-                rtmpPathName: channelInfo.rtmpPathName,
-                iconURI: channelInfo.iconURI,
+                _id: programInfo._id,
+                name: programInfo.name,
+                rtmpPathName: programInfo.rtmpPathName,
+                iconURI: programInfo.iconURI,
                 programsFiltersUsed: weekday !== '' ? {
                     weekday: weekday
                 } : undefined,
@@ -179,34 +179,34 @@ export const editChannel = async (req: Request, res: Response, next: NextFunctio
         return
     }
 
-    const currChannelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+    const currprogramInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
         .catch((err) => {
             res.status(500).json({ message: 'Internal Server Error' })
             return
         })
 
-    if (currChannelInfo === null || currChannelInfo === undefined) {
+    if (currprogramInfo === null || currprogramInfo === undefined) {
         res.status(404).json({ message: 'Channel not found' })
         return
     }
 
-    const updatedChannelInfo: { name?: string, rtmpPathName?: string, iconURI?: string } = {}
-    if (data.name && data.name !== currChannelInfo.name) {
-        updatedChannelInfo.name = data.name
+    const updatedprogramInfo: { name?: string, rtmpPathName?: string, iconURI?: string } = {}
+    if (data.name && data.name !== currprogramInfo.name) {
+        updatedprogramInfo.name = data.name
     }
-    if (data.rtmpPathName && data.rtmpPathName !== currChannelInfo.rtmpPathName) {
-        updatedChannelInfo.rtmpPathName = data.rtmpPathName
+    if (data.rtmpPathName && data.rtmpPathName !== currprogramInfo.rtmpPathName) {
+        updatedprogramInfo.rtmpPathName = data.rtmpPathName
     }
-    if (data.iconURI && data.iconURI !== currChannelInfo.iconURI) {
-        updatedChannelInfo.iconURI = data.iconURI
+    if (data.iconURI && data.iconURI !== currprogramInfo.iconURI) {
+        updatedprogramInfo.iconURI = data.iconURI
     }
 
-    if (updatedChannelInfo.name === undefined && updatedChannelInfo.rtmpPathName === undefined && updatedChannelInfo.iconURI === undefined) {
+    if (updatedprogramInfo.name === undefined && updatedprogramInfo.rtmpPathName === undefined && updatedprogramInfo.iconURI === undefined) {
         res.status(400).json({ message: 'Requested values already associated to the channel' })
         return
     } else {
         try {
-            const updatedChannel = await Channel.findByIdAndUpdate(currChannelInfo._id, updatedChannelInfo)
+            const updatedChannel = await Channel.findByIdAndUpdate(currprogramInfo._id, updatedprogramInfo)
             res.status(200).json({ message: 'Channel updated!' })
             return
 
@@ -223,19 +223,19 @@ export const deleteChannel = async (req: Request, res: Response, next: NextFunct
         return
     }
 
-    const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+    const programInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
         .catch((err) => {
             res.status(500).json({ message: 'Internal Server Error' })
             return
         })
 
-    if (channelInfo === null || channelInfo === undefined) {
+    if (programInfo === null || programInfo === undefined) {
         res.status(404).json({ message: 'Program not found' })
         return
     }
 
     try {
-        const programsToDelete = await Program.find({ channelId: channelInfo._id })
+        const programsToDelete = await Program.find({ channelId: programInfo._id })
         if (programsToDelete !== null) {
             programsToDelete.forEach(async (program) => {
                 const deleteProgram = await Program.findByIdAndDelete(program._id)
@@ -244,7 +244,7 @@ export const deleteChannel = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const deleteChannel = await Channel.findByIdAndDelete(channelInfo._id)
+        const deleteChannel = await Channel.findByIdAndDelete(programInfo._id)
     } catch (err) {
         res.status(500).json({ message: 'Internal server error. Try again later.' })
         return
@@ -276,13 +276,13 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
         return
     }
 
-    const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+    const programInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
         .catch((err) => {
             res.status(500).json({ message: 'Internal Server Error' })
             return
         })
 
-    if (channelInfo === null || channelInfo === undefined) {
+    if (programInfo === null || programInfo === undefined) {
         res.status(404).json({ message: 'Channel not found' })
         return
     }
@@ -295,7 +295,7 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
     }
 
     for (const weekday of weekdays) {
-        const programs = await Program.find({ channelId: channelInfo._id, weekdays: weekday })
+        const programs = await Program.find({ channelId: programInfo._id, weekdays: weekday })
         for (const program of programs) {
             const programTimes = {
                 startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
@@ -319,7 +319,7 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
     } else {
         try {
             const newProgram = new Program({
-                channelId: channelInfo._id,
+                channelId: programInfo._id,
                 name: data.name,
                 description: data.description,
                 startTime: data.startTime,
@@ -334,12 +334,51 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
             })
             await newProgram.save()
 
-            res.status(200).json({ message: `New program created for '${channelInfo.name}'.` })
+            res.status(200).json({ message: `New program created for '${programInfo.name}'.` })
             return
         } catch (err) {
             res.status(500).json({ message: 'Internal server error. Try again later.' })
             return
         }
+    }
+}
+
+export const getProgram = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+        .catch((err) => {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        })
+
+    const programInfo = await Program.findById(req.params.programId)
+        .catch((err) => {
+            res.status(500).json({ message: 'Internal Server Error' })
+            return
+        })
+
+    if (programInfo === null || programInfo === undefined || channelInfo === null || channelInfo === undefined || !channelInfo._id.equals(programInfo.channelId)) {
+        res.status(404).json({ message: 'Program not found' })
+        return
+    }
+
+        res.status(200).json({
+            _id: programInfo._id,
+            name: programInfo.name,
+            description: programInfo.description,
+            startTime: programInfo.startTime,
+            endTime: programInfo.endTime,
+            weekdays: programInfo.weekdays,
+            maxVideos: programInfo.maxVideos,
+            type: programInfo.type,
+            ytChannelId: programInfo.type === 'byYTChannel' ? programInfo.ytChannelId : undefined,
+            ytPlaylistId: programInfo.type === 'byYTPlaylist' ? programInfo.ytPlaylistId : undefined,
+            ytVideoSearchMode: programInfo.ytVideoSearchMode,
+            ytVideoInvertedOrder: programInfo.ytVideoInvertedOrder
+        })
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error. Try again later.' })
+        return
     }
 }
 
@@ -349,7 +388,7 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
         return
     }
 
-    const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+    const programInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
         .catch((err) => {
             res.status(500).json({ message: 'Internal Server Error' })
             return
@@ -363,7 +402,7 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
 
 
 
-    if (currProgramInfo === null || currProgramInfo === undefined || channelInfo === null || channelInfo === undefined || !channelInfo._id.equals(currProgramInfo.channelId)) {
+    if (currProgramInfo === null || currProgramInfo === undefined || programInfo === null || programInfo === undefined || !programInfo._id.equals(currProgramInfo.channelId)) {
         res.status(404).json({ message: 'Program not found' })
         return
     }
@@ -447,7 +486,7 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
         }
 
         for (const weekday of weekdays) {
-            const programs = await Program.find({ channelId: channelInfo._id, weekdays: weekday })
+            const programs = await Program.find({ channelId: programInfo._id, weekdays: weekday })
             for (const program of programs) {
                 const programTimes = {
                     startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
@@ -541,7 +580,7 @@ export const deleteProgram = async (req: Request, res: Response, next: NextFunct
         return
     }
 
-    const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+    const programInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
         .catch((err) => {
             res.status(500).json({ message: 'Internal Server Error' })
             return
@@ -553,7 +592,7 @@ export const deleteProgram = async (req: Request, res: Response, next: NextFunct
             return
         })
 
-    if (programToDelete === null || programToDelete === undefined || channelInfo === null || channelInfo === undefined || !channelInfo._id.equals(programToDelete.channelId)) {
+    if (programToDelete === null || programToDelete === undefined || programInfo === null || programInfo === undefined || !programInfo._id.equals(programToDelete.channelId)) {
         res.status(404).json({ message: 'Program not found' })
         return
     }
