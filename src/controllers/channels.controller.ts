@@ -236,19 +236,19 @@ export const deleteChannel = async (req: Request, res: Response, next: NextFunct
         return
     }
 
-    const programInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
+    const channelToDelete = await Channel.findOne({ rtmpPathName: req.params.channel })
         .catch((err) => {
             res.status(500).json({ message: 'Internal Server Error' })
             return
         })
 
-    if (programInfo === null || programInfo === undefined) {
-        res.status(404).json({ message: 'Program not found' })
+    if (channelToDelete === null || channelToDelete === undefined) {
+        res.status(404).json({ message: 'Channel not found' })
         return
     }
 
     try {
-        const programsToDelete = await Program.find({ channelId: programInfo._id })
+        const programsToDelete = await Program.find({ channelId: channelToDelete._id })
         if (programsToDelete !== null) {
             programsToDelete.forEach(async (program) => {
                 const deleteProgram = await Program.findByIdAndDelete(program._id)
@@ -257,7 +257,7 @@ export const deleteChannel = async (req: Request, res: Response, next: NextFunct
             });
         }
 
-        const deleteChannel = await Channel.findByIdAndDelete(programInfo._id)
+        const deleteChannel = await Channel.findByIdAndDelete(channelToDelete._id)
     } catch (err) {
         res.status(500).json({ message: 'Internal server error. Try again later.' })
         return
