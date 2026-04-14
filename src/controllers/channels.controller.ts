@@ -7,7 +7,7 @@ import { type NrRange } from "../services/numberRange.ts"
 
 export const addChannel = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
-        res.status(401).json({ message: 'Only users with admin role can create a channel.' })
+        res.status(403).json({ message: 'Only users with admin role can create a channel.' })
         return
     }
 
@@ -178,7 +178,7 @@ export const getChannel = async (req: Request, res: Response, next: NextFunction
 
 export const editChannel = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
-        res.status(401).json({ message: 'Only users with admin role can edit a channel.' })
+        res.status(403).json({ message: 'Only users with admin role can edit a channel.' })
         return
     }
 
@@ -232,7 +232,7 @@ export const editChannel = async (req: Request, res: Response, next: NextFunctio
 
 export const deleteChannel = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
-        res.status(401).json({ message: 'Only users with admin role can delete a program.' })
+        res.status(403).json({ message: 'Only users with admin role can delete a channel.' })
         return
     }
 
@@ -266,7 +266,7 @@ export const deleteChannel = async (req: Request, res: Response, next: NextFunct
 
 export const addProgram = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
-        res.status(401).json({ message: 'Only users with admin role can edit a channel.' })
+        res.status(403).json({ message: 'Only users with admin role can add a program.' })
         return
     }
 
@@ -385,7 +385,7 @@ export const getProgram = async (req: Request, res: Response, next: NextFunction
 
 export const editProgram = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
-        res.status(401).json({ message: 'Only users with admin role can edit a program.' })
+        res.status(403).json({ message: 'Only users with admin role can edit a program.' })
         return
     }
 
@@ -565,7 +565,7 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
 
 export const deleteProgram = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
-        res.status(401).json({ message: 'Only users with admin role can edit a program.' })
+        res.status(403).json({ message: 'Only users with admin role can delete a program.' })
         return
     }
 

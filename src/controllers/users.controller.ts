@@ -51,7 +51,7 @@ export const delUser = async (req: Request, res: Response, next: NextFunction) =
     const userToDelete = res.locals.userInfo
     const adminCount = await User.countDocuments({ role: 'admin' });
     if (adminCount < 2 && userToDelete.role === 'admin') {
-        res.status(401).json({ message: 'This service needs at least one adminstrator.' })
+        res.status(412).json({ message: 'This service needs at least one adminstrator.' })
         return
     }
 
