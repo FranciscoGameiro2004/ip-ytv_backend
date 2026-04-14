@@ -232,7 +232,7 @@ export const editChannel = async (req: Request, res: Response, next: NextFunctio
 
 export const deleteChannel = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
-        res.status(401).json({ message: 'Only users with admin role can edit a program.' })
+        res.status(401).json({ message: 'Only users with admin role can delete a program.' })
         return
     }
 
