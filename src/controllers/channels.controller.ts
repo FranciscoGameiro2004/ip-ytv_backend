@@ -130,39 +130,50 @@ export const getChannel = async (req: Request, res: Response, next: NextFunction
         }
 
         const channelProgramsInfo = weekday !== '' ? await Program.find({ channelId: programInfo._id, weekdays: (weekday as string) }) : await Program.find({ channelId: programInfo._id })
-        const programs: any[] = []
-        //! Correct this! ^
-        channelProgramsInfo.forEach(programInfo => {
-            programs.push(
-                {
-                    _id: programInfo._id,
-                    name: programInfo.name,
-                    startTime: programInfo.startTime,
-                    endTime: programInfo.endTime,
-                    weekdays: programInfo.weekdays,
-                    type: programInfo.type,
-                    ytChannelId: programInfo.type === 'byYTChannel' ? programInfo.ytChannelId : undefined,
-                    ytPlaylistId: programInfo.type === 'byYTPlaylist' ? programInfo.ytPlaylistId : undefined,
-                }
-            )
-        });
 
-        res.status(200).json(
+        interface iProgram {
+            _id: any, //! Resolve this later...
+            name: string,
+            startTime: `${NrRange<0, 24>}:${NrRange<0, 60>}:${NrRange<0, 60>}`,
+            endTime: `${NrRange<0, 24>}:${NrRange<0, 60>}:${NrRange<0, 60>}`,
+            weekdays: ('Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun')[],
+            type: 'byYTChannel' | 'byYTPlaylist',
+            ytChannelId ?: string,
+            ytPlaylistId ?: string,
+        }
+
+        const programs: iProgram[] = []
+    channelProgramsInfo.forEach(programInfo => {
+        programs.push(
             {
                 _id: programInfo._id,
                 name: programInfo.name,
-                rtmpPathName: programInfo.rtmpPathName,
-                iconURI: programInfo.iconURI,
-                programsFiltersUsed: weekday !== '' ? {
-                    weekday: weekday
-                } : undefined,
-                programs: programs
+                startTime: programInfo.startTime,
+                endTime: programInfo.endTime,
+                weekdays: programInfo.weekdays,
+                type: programInfo.type,
+                ytChannelId: programInfo.type === 'byYTChannel' ? programInfo.ytChannelId : undefined,
+                ytPlaylistId: programInfo.type === 'byYTPlaylist' ? programInfo.ytPlaylistId : undefined,
             }
         )
-    } catch (err) {
-        res.status(500).json({ message: 'Internal server error. Try again later.' })
-        return
-    }
+    });
+
+    res.status(200).json(
+        {
+            _id: programInfo._id,
+            name: programInfo.name,
+            rtmpPathName: programInfo.rtmpPathName,
+            iconURI: programInfo.iconURI,
+            programsFiltersUsed: weekday !== '' ? {
+                weekday: weekday
+            } : undefined,
+            programs: programs
+        }
+    )
+} catch (err) {
+    res.status(500).json({ message: 'Internal server error. Try again later.' })
+    return
+}
 }
 
 export const editChannel = async (req: Request, res: Response, next: NextFunction) => {
