@@ -1,12 +1,13 @@
 import mongoose, { Schema, Types } from "mongoose";
+import { type NrRange } from "../services/numberRange.ts";
 
 interface ProgramInterface extends Document {
     channelId: Types.ObjectId;
     name: string;
     description?: string;
     flexibleTime: boolean;
-    startTime: string;
-    endTime: string;
+    startTime: `${NrRange<0, 24>}:${NrRange<0, 60>}:${NrRange<0, 60>}`;
+    endTime: `${NrRange<0, 24>}:${NrRange<0, 60>}:${NrRange<0, 60>}`;
     weekdays: ('Mon' | 'Tue' | 'Wen' | 'Thu' | 'Fri' | 'Sat' | 'Sun')[];
     maxVideos: number;
     type: 'byYTChannel' | 'byYTPlaylist';

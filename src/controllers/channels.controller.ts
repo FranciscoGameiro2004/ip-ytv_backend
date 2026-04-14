@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction } from "express"
 import { env } from "node:process"
 import { Channel } from "../models/channels.models.ts"
 import { Program } from "../models/programs.models.ts"
+import { checkTimeOverlap } from "../services/timeOverlap.ts"
+import { type NrRange } from "../services/numberRange.ts"
 
 export const addChannel = async (req: Request, res: Response, next: NextFunction) => {
     if (res.locals.userInfo.role !== 'admin') {
@@ -289,26 +291,14 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
 
     let timelineConflicts = false
     const weekdays = data.weekdays
-    const newProgramTimes = {
-        startTime: data.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
-        endTime: data.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
-    }
 
     for (const weekday of weekdays) {
         const programs = await Program.find({ channelId: programInfo._id, weekdays: weekday })
         for (const program of programs) {
-            const programTimes = {
-                startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
-                endTime: program.endTime!.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
-            }
-            if ((newProgramTimes.endTime > programTimes.startTime && programTimes.endTime > newProgramTimes.startTime)) {
+            if (checkTimeOverlap(data, program)) {
                 timelineConflicts = true
                 break
             }
-            console.log(newProgramTimes.startTime, newProgramTimes.endTime)
-            console.log(programTimes.startTime, programTimes.endTime)
-            console.log(newProgramTimes.endTime > programTimes.startTime && programTimes.endTime > newProgramTimes.startTime)
-            console.log('---')
         };
         if (timelineConflicts) break
     }
@@ -346,21 +336,21 @@ export const addProgram = async (req: Request, res: Response, next: NextFunction
 export const getProgram = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const channelInfo = await Channel.findOne({ rtmpPathName: req.params.channel })
-        .catch((err) => {
-            res.status(500).json({ message: 'Internal Server Error' })
-            return
-        })
+            .catch((err) => {
+                res.status(500).json({ message: 'Internal Server Error' })
+                return
+            })
 
-    const programInfo = await Program.findById(req.params.programId)
-        .catch((err) => {
-            res.status(500).json({ message: 'Internal Server Error' })
-            return
-        })
+        const programInfo = await Program.findById(req.params.programId)
+            .catch((err) => {
+                res.status(500).json({ message: 'Internal Server Error' })
+                return
+            })
 
-    if (programInfo === null || programInfo === undefined || channelInfo === null || channelInfo === undefined || !channelInfo._id.equals(programInfo.channelId)) {
-        res.status(404).json({ message: 'Program not found' })
-        return
-    }
+        if (programInfo === null || programInfo === undefined || channelInfo === null || channelInfo === undefined || !channelInfo._id.equals(programInfo.channelId)) {
+            res.status(404).json({ message: 'Program not found' })
+            return
+        }
 
         res.status(200).json({
             _id: programInfo._id,
@@ -432,10 +422,10 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
     const updatedProgramInfo: {
         name?: string,
         description?: string,
-        startTime?: string,
+        startTime?: `${NrRange<0, 24>}:${NrRange<0, 60>}:${NrRange<0, 60>}`,
         endTime?: string,
         weekdays?: ('Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun')[],
-        maxVideos?: number,
+        maxVideos?: `${NrRange<0, 24>}:${NrRange<0, 60>}:${NrRange<0, 60>}`,
         type?: string,
         ytChannelId?: string,
         ytPlaylistId?: string,
@@ -480,26 +470,14 @@ export const editProgram = async (req: Request, res: Response, next: NextFunctio
     if (data.startTime || data.endTime || data.weekdays) {
         let timelineConflicts = false
         const weekdays = data.weekdays ? data.weekdays : currProgramInfo.weekdays
-        const updatedProgramTimes = {
-            startTime: data.startTime ? data.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0) : currProgramInfo.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
-            endTime: data.endTime ? data.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0) : currProgramInfo.endTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
-        }
 
         for (const weekday of weekdays) {
             const programs = await Program.find({ channelId: programInfo._id, weekdays: weekday })
             for (const program of programs) {
-                const programTimes = {
-                    startTime: program.startTime.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0),
-                    endTime: program.endTime!.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
-                }
-                if ((updatedProgramTimes.endTime > programTimes.startTime && programTimes.endTime > updatedProgramTimes.endTime)) {
+                if (checkTimeOverlap(data, program)) {
                     timelineConflicts = true
                     break
                 }
-                console.log(updatedProgramTimes.startTime, updatedProgramTimes.endTime)
-                console.log(programTimes.startTime, programTimes.endTime)
-                console.log(updatedProgramTimes.endTime > programTimes.startTime && programTimes.endTime > updatedProgramTimes.startTime)
-                console.log('---')
             };
             if (timelineConflicts) break
         }
