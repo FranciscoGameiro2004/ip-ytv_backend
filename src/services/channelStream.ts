@@ -48,16 +48,17 @@ export class ChannelStream {
             feedURL: '',
             feed: [],
 
-            streamIndex: 0,
+            streamIndex: 1,
         }
 
         this.#ffmpegCommand = ffmpeg(`./streams/${channel}/playlist.txt`)
             .inputOptions(["-re", "-f concat", "-safe 0", "-stream_loop -1"])
             .outputOptions([
-                "-c:v h264_qsv",
+                "-c:v libx264",
                 "-c:a copy",
-                "-preset veryfast",
+                "-preset ultrafast",
                 "-hls_flags delete_segments",
+                "-hls_time 15",
                 "-f hls",
                 "-vf scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
             ])
@@ -70,10 +71,10 @@ export class ChannelStream {
                 }); */
             })
             .on("progress", async (progress) => {
-
+                console.log(progress)
             })
             .on("stderr", (stderrLine) => {
-                //console.log(`FFmpeg stderr: ${stderrLine}`);
+                console.log(`FFmpeg stderr: ${stderrLine}`);
             })
             .on("error", (err) => {
                 console.error(`Stream error: `, err);
@@ -98,6 +99,18 @@ export class ChannelStream {
             this.#createFiller(300, () => {
                 this.#ffmpegCommand.save(`./streams/${this.#info.channel}/hls_output/output.m3u8`);
                 this.#ffmpegCommand.run()
+
+                while (this.#info.streamIndex !== 1) {
+                    console.log('Before:', this.#info.streamIndex)
+                    this.#downloadVideo(this.#info.feed[this.#info.feedIndex].link, this.#info.streamIndex)
+                    this.#info.feedIndex += 1
+                    this.#changeStreamIndex()
+                    if (this.#info.streamIndex == 1) {
+                        console.log('FLAG!')
+                    }
+                    console.log('After:', this.#info.streamIndex)
+                    console.log('---')
+                }
             })
 
         } catch (err) {
@@ -129,10 +142,25 @@ export class ChannelStream {
         return time.split(':').reduce((prev: number, val: string, idx: number) => { return prev + +val * (60 ** (2 - idx)) }, 0)
     }
 
+    #changeStreamIndex() {
+        if (this.#info.streamIndex === 3) {
+            this.#info.streamIndex = 1
+        } else {
+            this.#info.streamIndex += 1
+        }
+    }
+
+    async #downloadVideo(ytVideoLink: string, vidIdx: number) {
+        try {
+            console.log(`A realizar o download do vídeo ${ytVideoLink}`);
+            execSync(`yt-dlp -t mp4 -S "res:1080" --force-overwrites -o "./streams/${this.#info.channel}/media/video${vidIdx}.%(ext)s" "${ytVideoLink}"`);
+        } catch (err) {
+            console.log("Download não sucedido");
+        }
+    }
+
     async #getTodaysPrograms() {
         const currWeekday = format(new Date(), 'ddd')
-        console.log(currWeekday)
-
         try {
             const newPrograms = await Program.find({ weekdays: currWeekday })
             return newPrograms
@@ -142,12 +170,11 @@ export class ChannelStream {
         }
     }
 
-    async #createFiller(threshold: number = 300 /* 5 Minutes by default */, endCallback: () => void | undefined) {
+    async #createFiller(threshold: number = 300 /* 5 Minutes by default */, endCallback: () => void) {
         this.#createTimeSnapshot()
 
         const timeInterval = this.#timeInSeconds(this.#info.programs[this.#info.programIndex].startTime) - this.#info.timeSnapshot.time
-        console.log(timeInterval)
-        if (timeInterval > threshold ) {
+        if (timeInterval > threshold) {
             const fillerCommand = ffmpeg(`./streams/filler.mp4`)
                 .inputOptions([`-stream_loop ${Math.floor(timeInterval / 8) - 1}`])
                 .outputOptions([
@@ -159,13 +186,12 @@ export class ChannelStream {
                 .on("stderr", (stderrLine) => {
                     console.log(`FFmpeg stderr: ${stderrLine}`);
                 })
-                .on("end", () => {
-                    if (endCallback) {
-                        endCallback()
-                    }
+                .once("end", () => {
+                    endCallback()
                 });
-            fillerCommand.save(`./streams/${this.#info.channel}/media/video1.mp4`)
+            fillerCommand.save(`./streams/${this.#info.channel}/media/video${this.#info.streamIndex}.mp4`)
             fillerCommand.run()
+            this.#changeStreamIndex()
         }
     }
 
